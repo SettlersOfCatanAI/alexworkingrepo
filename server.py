@@ -3,16 +3,13 @@ import os
 import numpy as np
 from collections import deque
 
-
-
 OBSERVATION_SPACE_SIZE = (1,22)
 ACTION_SPACE_SIZE = 2
-
-
 #  Stats settings
 AGGREGATE_STATS_EVERY = 2  # episodes
-class JSettlersServer:
 
+
+class JSettlersServer:
     def __init__(self, host, port, agent, timeout=None):
         # Used for training agent
         self.agent = agent
@@ -25,9 +22,9 @@ class JSettlersServer:
         self.conn = None
         self.addr = None
 
-        self.final_place = -1 #change from -1 to final placing after game finishes
+        self.final_place = -1 # change from -1 to final placing after game finishes
 
-        #Used for logging models and stats
+        # Used for logging models and stats
         self.ep_rewards = [0]
         self.curr_episode = 1
         self.standing_log = "agent_standings.csv"
@@ -81,17 +78,17 @@ class JSettlersServer:
             self.conn, self.addr = self.soc.accept()     # Establish connection with client
             length_of_message = int.from_bytes(self.conn.recv(2), byteorder='big')
             msg = self.conn.recv(length_of_message).decode("UTF-8")
+            print(msg)
             msg_args = msg.split("|")
             if msg_args[0] == 'end':
                 is_over = str(msg_args[1])
                 if "true" in is_over:
                     final_placing = int(msg_args[2])
                     self.final_place = final_placing
-                    return None, None
+                    return None
                 else:
                     print("something went wrong here!")
-                    return None, None
-
+                    return None
 
             elif msg_args[1] == 'trade':
                 my_vp = int(msg_args[1])
@@ -104,7 +101,10 @@ class JSettlersServer:
                 self.cur_state = np.array([my_vp] + [opp_vp] + my_res + opp_res)
                 # Construct total feature vector
                 feat_vector = np.array([my_vp] + [opp_vp] + my_res + opp_res + get + give)
-                return self.cur_state, feat_vector
+                return feat_vector
+
+            return None
+
         except:
             print("Timeout or error occured. Exiting ... ")
 
@@ -117,12 +117,8 @@ class JSettlersServer:
             return 0
 
 
-
-
-
-
 if __name__ == "__main__":
     from alex_bot import Agent
-    agent = Agent()
-    server = JSettlersServer("localhost", 2004, agent, timeout=120)
+    trading_agent = Agent()
+    server = JSettlersServer("localhost", 2004, trading_agent, timeout=120)
     server.run()

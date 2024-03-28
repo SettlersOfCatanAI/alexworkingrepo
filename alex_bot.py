@@ -9,6 +9,7 @@ LR = 0.001
 THRESHOLD = 0.8 # THRESHOLD FOR ACCEPTING TRADE
 BATCH_SIZE = 1000
 
+
 class Agent:
     def __init__(self):
         self.n_games = 0
@@ -18,6 +19,12 @@ class Agent:
         self.memory = deque(maxlen=MAX_MEMORY)
         self.model = Linear_QNet(22, 256, 1)
         self.trainer = QTrainer(self.model, lr=LR, gamma=self.gamma)
+
+    def save_model(self, model_name='model.pth'):
+        self.model.save(model_name)
+
+    def load_model(self, model_name='model.pth'):
+        self.model.load(model_name)
 
     def remember(self, state, action, reward, next_state):
         self.memory.append((state, action, reward, next_state))
@@ -59,7 +66,10 @@ def train():
     agent = Agent()
     game = JSettlersServer("localhost", 2004, agent, timeout=120)
     while True:
-        cur_state, feat_vector = game.get_message()
+        feat_vector = game.get_message()
+        if feat_vector == None:
+            print("Msg skipped: ")
+            continue
 
         if game.final_place != -1:
             reward = 0
@@ -85,9 +95,11 @@ def train():
             agent.n_games += 1
 
         else:
+            cur_state = feat_vector[0:12]
+
             action = agent.get_action(feat_vector)
 
-            reward = game.play_step(action)
+            reward = game.play_step('trade', action)
 
             my_res = feat_vector[2:7]
             opp_res = feat_vector[7:12]
@@ -99,18 +111,13 @@ def train():
 
             new_state = np.array(feat_vector[0:2] + my_new_res + opp_new_res)
 
+
+
             # TODO: adjust the rewrad based on potentially more resources being good
 
             agent.action_list.append((cur_state, action, reward, new_state))
 
             agent.train_short_memory(cur_state, action, reward, new_state)
-
-
-
-
-
-
-
 
 
 if __name__ == '__main__':
