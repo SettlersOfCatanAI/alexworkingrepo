@@ -44,8 +44,10 @@ class Agent:
     def get_action(self, state):
         self.epsilon = 80 - self.n_games
         if random.randint(0, 200) < self.epsilon:
+            print("Random:")
             action = random.randint(0, 1)
         else:
+            print("Using Model:")
             state0 = torch.tensor(state, dtype=torch.float)
             prediction = self.model(state0)
             if prediction[0] > THRESHOLD:
@@ -67,51 +69,52 @@ def train():
     game = JSettlersServer("localhost", 2004, agent, timeout=120)
     while True:
         feat_vector = game.get_message()
-        if feat_vector == None:
-            print("Msg skipped: ")
-            continue
+        if feat_vector is None:
+            # print("Msg skipped: ")
+            if game.final_place != -1:
+                reward = 0
+                if game.final_place == 1:
+                    reward = 10
+                elif game.final_place == 2:
+                    reward = 5
+                elif game.final_place == 3:
+                    reward = -3
+                elif game.final_place == 4:
+                    reward = -6
+                else:
+                    print("game not finished yet")
 
-        if game.final_place != -1:
-            reward = 0
-            if game.final_place == 1:
-                reward = 10
-            elif game.final_place == 2:
-                reward = 5
-            elif game.final_place == 3:
-                reward = -3
-            elif game.final_place == 4:
-                reward = -6
-            else:
-                print("game not finished yet")
+                for elem in agent.action_list:
+                    agent.remember(elem[0], elem[1], elem[2] + reward, elem[3])
 
-            for elem in agent.action_list:
-                elem[2] += reward
-                agent.remember(elem[0], elem[1], elem[2], elem[3])
+                print("Placed " + str(game.final_place))
 
-            agent.action_list.clear()
-            game.reset()
+                agent.action_list.clear()
+                game.reset()
 
-            agent.train_long_memory()
-            agent.n_games += 1
+                agent.train_long_memory()
+                print("Finished training long term memory")
+
+                agent.n_games += 1
 
         else:
-            cur_state = feat_vector[0:12]
+            cur_state = feat_vector
 
             action = agent.get_action(feat_vector)
 
+            print("Action: " + str(action))
             reward = game.play_step('trade', action)
 
             my_res = feat_vector[2:7]
             opp_res = feat_vector[7:12]
             get = feat_vector[12:17]
             give = feat_vector[17:22]
-
-            my_new_res = my_res - give + get
-            opp_new_res = opp_res - get + give
-
-            new_state = np.array(feat_vector[0:2] + my_new_res + opp_new_res)
-
-
+            if action == 0:
+                new_state = np.array(feat_vector[0:12].tolist() + [0 for i in range(10)])
+            else:
+                my_new_res = my_res - give + get
+                opp_new_res = opp_res - get + give
+                new_state = np.array(feat_vector[0:2].tolist() + my_new_res.tolist() + opp_new_res.tolist() + [0 for i in range(10)])
 
             # TODO: adjust the rewrad based on potentially more resources being good
 
