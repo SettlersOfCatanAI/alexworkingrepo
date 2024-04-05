@@ -4,6 +4,11 @@ import numpy as np
 from collections import deque
 from model import QTrainer, Linear_QNet
 
+
+
+# java -jar JSettlersServer-2.0.00.jar -Djsettlers.bots.percent3p=25 -Djsettlers.bots.botgames.total=1000
+
+
 MAX_MEMORY = 1000
 LR = 0.001
 THRESHOLD = 0.8 # THRESHOLD FOR ACCEPTING TRADE
