@@ -4,10 +4,11 @@ import numpy as np
 from collections import deque
 from model import QTrainer, Linear_QNet
 
-MAX_MEMORY = 10000
+MAX_MEMORY = 1000
 LR = 0.001
 THRESHOLD = 0.8 # THRESHOLD FOR ACCEPTING TRADE
 BATCH_SIZE = 1000
+NUM_GAMES = 1000
 
 
 class Agent:
@@ -61,26 +62,40 @@ def train():
     from server import JSettlersServer
 
     # TODO: plot these as needed.
-    plot_scores = []
-    plot_mean_scores = []
+    placements = [0,0,0,0]
+    placement_history = deque(maxlen=10) # tracks last 5 games
     total_score = 0
+    avg_placement = []
+
+
 
     agent = Agent()
     game = JSettlersServer("localhost", 2004, agent, timeout=120)
     while True:
+        if agent.n_games == NUM_GAMES:
+            break
         feat_vector = game.get_message()
         if feat_vector is None:
             # print("Msg skipped: ")
             if game.final_place != -1:
+                agent.n_games += 1
                 reward = 0
                 if game.final_place == 1:
                     reward = 10
+                    placements[0] += 1 
+                    placement_history.append(1)
                 elif game.final_place == 2:
                     reward = 5
+                    placements[2] += 1
+                    placement_history.append(2)
                 elif game.final_place == 3:
                     reward = -3
+                    placements[3] +=1 
+                    placement_history.append(3)
                 elif game.final_place == 4:
                     reward = -6
+                    placements[4] +=1 
+                    placement_history.append(4)
                 else:
                     print("game not finished yet")
 
@@ -90,12 +105,23 @@ def train():
                 print("Placed " + str(game.final_place))
 
                 agent.action_list.clear()
-                game.reset()
+                
 
                 agent.train_long_memory()
                 print("Finished training long term memory")
+                agent.model.save()
 
                 agent.n_games += 1
+
+                placement_history.append(game.final_place)
+
+                avg_placement.append(sum(placement_history) / len(placement_history))
+                with open('placements.txt', 'a') as file:
+                    file.write(str(game.final_place) + "\n")
+                    # print("    " + str(game.final_place))
+
+                game.reset() 
+
 
         else:
             cur_state = feat_vector
@@ -116,10 +142,8 @@ def train():
                 opp_new_res = opp_res - get + give
                 new_state = np.array(feat_vector[0:2].tolist() + my_new_res.tolist() + opp_new_res.tolist() + [0 for i in range(10)])
 
-            # TODO: adjust the rewrad based on potentially more resources being good
-
+            reward += (sum(get) - sum(give)) * 0.2
             agent.action_list.append((cur_state, action, reward, new_state))
-
             agent.train_short_memory(cur_state, action, reward, new_state)
 
 
