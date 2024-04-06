@@ -13,7 +13,7 @@ MAX_MEMORY = 1000
 LR = 0.001
 THRESHOLD = 0.8 # THRESHOLD FOR ACCEPTING TRADE
 BATCH_SIZE = 1000
-NUM_GAMES = 1000
+NUM_GAMES = 10
 
 
 class Agent:
@@ -91,15 +91,15 @@ def train():
                     placement_history.append(1)
                 elif game.final_place == 2:
                     reward = 5
-                    placements[2] += 1
+                    placements[1] += 1
                     placement_history.append(2)
                 elif game.final_place == 3:
                     reward = -3
-                    placements[3] +=1 
+                    placements[2] +=1 
                     placement_history.append(3)
                 elif game.final_place == 4:
                     reward = -6
-                    placements[4] +=1 
+                    placements[3] +=1 
                     placement_history.append(4)
                 else:
                     print("game not finished yet")
