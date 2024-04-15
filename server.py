@@ -135,5 +135,6 @@ class JSettlersServer:
 if __name__ == "__main__":
     from alex_bot import Agent
     trading_agent = Agent()
+    trading_agent.load_model()
     server = JSettlersServer("localhost", 2004, trading_agent, timeout=120)
     server.run()
